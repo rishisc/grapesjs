@@ -1,16 +1,15 @@
 module.exports = require('./AssetView').extend({
-
   events: {
     'click [data-toggle=asset-remove]': 'onRemove',
     click: 'onClick',
-    dblclick: 'onDblClick',
+    dblclick: 'onDblClick'
   },
 
   getPreview() {
     const pfx = this.pfx;
     const src = this.model.get('src');
     return `
-      <div class="${pfx}preview" style="background-image: url(${src});"></div>
+      <div class="${pfx}preview" style="background-image: url('${src}');"></div>
       <div class="${pfx}preview-bg ${this.ppfx}checker-bg"></div>
     `;
   },
@@ -32,7 +31,7 @@ module.exports = require('./AssetView').extend({
 
   init(o) {
     const pfx = this.pfx;
-    this.className  += ` ${pfx}asset-image`;
+    this.className += ` ${pfx}asset-image`;
   },
 
   /**

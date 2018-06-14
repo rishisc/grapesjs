@@ -19,30 +19,43 @@ module.exports = () => {
     defaults: {
       'core:undo': {
         keys: '⌘+z, ctrl+z',
-        handler: 'core:undo',
+        handler: 'core:undo'
       },
       'core:redo': {
         keys: '⌘+shift+z, ctrl+shift+z',
-        handler: 'core:redo',
+        handler: 'core:redo'
       },
       'core:copy': {
         keys: '⌘+c, ctrl+c',
-        handler: 'core:copy',
+        handler: 'core:copy'
       },
       'core:paste': {
         keys: '⌘+v, ctrl+v',
-        handler: 'core:paste',
+        handler: 'core:paste'
+      },
+      'core:component-next': {
+        keys: 's',
+        handler: 'core:component-next'
+      },
+      'core:component-prev': {
+        keys: 'w',
+        handler: 'core:component-prev'
+      },
+      'core:component-enter': {
+        keys: 'd',
+        handler: 'core:component-enter'
+      },
+      'core:component-exit': {
+        keys: 'a',
+        handler: 'core:component-exit'
       }
     }
   };
 
   return {
-
     keymaster,
 
-
     name: 'Keymaps',
-
 
     /**
      * Get module configurations
@@ -51,7 +64,6 @@ module.exports = () => {
     getConfig() {
       return config;
     },
-
 
     /**
      * Initialize module
@@ -65,7 +77,6 @@ module.exports = () => {
       return this;
     },
 
-
     onLoad() {
       const defKeys = config.defaults;
 
@@ -74,7 +85,6 @@ module.exports = () => {
         this.add(id, value.keys, value.handler);
       }
     },
-
 
     /**
      * Add new keymap
@@ -116,7 +126,6 @@ module.exports = () => {
       return keymap;
     },
 
-
     /**
      * Get the keymap by id
      * @param {string} id Keymap id
@@ -129,7 +138,6 @@ module.exports = () => {
       return keymaps[id];
     },
 
-
     /**
      * Get all keymaps
      * @return {Object}
@@ -140,7 +148,6 @@ module.exports = () => {
     getAll() {
       return keymaps;
     },
-
 
     /**
      * Remove the keymap by id
@@ -160,8 +167,6 @@ module.exports = () => {
         em && em.trigger('keymap:remove', keymap);
         return keymap;
       }
-    },
-
-
+    }
   };
 };

@@ -2,7 +2,6 @@ const PropertyCompositeView = require('./PropertyCompositeView');
 const LayersView = require('./LayersView');
 
 module.exports = PropertyCompositeView.extend({
-
   templateInput() {
     const pfx = this.pfx;
     const ppfx = this.ppfx;
@@ -22,6 +21,13 @@ module.exports = PropertyCompositeView.extend({
     this.listenTo(model, 'change:stackIndex', this.indexChanged);
     this.listenTo(model, 'updateValue', this.inputValueChanged);
     this.delegateEvents();
+  },
+
+  clear(e) {
+    e && e.stopPropagation();
+    this.model.get('layers').reset();
+    this.model.clearValue();
+    this.targetUpdated();
   },
 
   /**
@@ -65,7 +71,7 @@ module.exports = PropertyCompositeView.extend({
     const layers = this.getLayers();
     const properties = model.get('properties').deepClone();
     properties.each(property => property.set('value', ''));
-    const layer = layers.add({properties});
+    const layer = layers.add({ properties });
 
     // In detached mode inputValueChanged will add new 'layer value'
     // to all subprops
@@ -74,7 +80,6 @@ module.exports = PropertyCompositeView.extend({
     // This will set subprops with a new default values
     model.set('stackIndex', layers.indexOf(layer));
   },
-
 
   inputValueChanged() {
     const model = this.model;
@@ -85,7 +90,7 @@ module.exports = PropertyCompositeView.extend({
     if (!model.get('detached')) {
       model.set('value', this.getLayerValues());
     } else {
-      model.get('properties').each(prop => prop.trigger('change:value'))
+      model.get('properties').each(prop => prop.trigger('change:value'));
     }
   },
 
@@ -126,7 +131,7 @@ module.exports = PropertyCompositeView.extend({
 
     layers.reset();
     layers.add(layersObj);
-    model.set({stackIndex: null}, {silent: true});
+    model.set({ stackIndex: null }, { silent: true });
   },
 
   onRender() {
@@ -149,14 +154,14 @@ module.exports = PropertyCompositeView.extend({
         } else {
           model.set('value', model.getFullValue(), opt);
         }
-      },
+      }
     };
     const layers = new LayersView({
       collection: this.getLayers(),
       stackModel: model,
       preview: model.get('preview'),
       config: this.config,
-      propsConfig,
+      propsConfig
     }).render().el;
 
     // Will use it to propogate changes
@@ -167,11 +172,10 @@ module.exports = PropertyCompositeView.extend({
       config: this.config,
       onChange: propsConfig.onChange,
       propTarget: propsConfig.propTarget,
-      customValue: propsConfig.customValue,
+      customValue: propsConfig.customValue
     }).render();
 
     //model.get('properties')
     fieldEl.appendChild(layers);
-  },
-
+  }
 });

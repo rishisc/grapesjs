@@ -1,11 +1,11 @@
-import {on, off} from 'utils/mixins'
+import { on, off } from 'utils/mixins';
 
 const ComponentView = require('./ComponentView');
 
 module.exports = ComponentView.extend({
-
   events: {
-    'dblclick': 'enableEditing',
+    dblclick: 'enableEditing',
+    input: 'onInput'
   },
 
   initialize(o) {
@@ -76,10 +76,10 @@ module.exports = ComponentView.extend({
             removable: 0,
             draggable: 0,
             copyable: 0,
-            toolbar: '',
-          })
+            toolbar: ''
+          });
           model.get('components').each(model => clean(model));
-        }
+        };
 
         // Avoid re-render on reset with silent option
         model.trigger('change:content', model);
@@ -91,6 +91,17 @@ module.exports = ComponentView.extend({
 
     this.rteEnabled = 0;
     this.toggleEvents();
+  },
+
+  /**
+   * Callback on input event
+   * @param  {Event} e
+   */
+  onInput(e) {
+    const { em } = this;
+
+    // Update toolbars
+    em && em.trigger('change:canvasOffset');
   },
 
   /**
@@ -108,7 +119,8 @@ module.exports = ComponentView.extend({
    */
   toggleEvents(enable) {
     var method = enable ? 'on' : 'off';
-    const mixins = {on, off};
+    const mixins = { on, off };
+    this.em.setEditing(enable);
 
     // The ownerDocument is from the frame
     var elDocs = [this.el.ownerDocument, document];
@@ -118,6 +130,5 @@ module.exports = ComponentView.extend({
     // Avoid closing edit mode on component click
     this.$el.off('mousedown', this.disablePropagation);
     this.$el[method]('mousedown', this.disablePropagation);
-  },
-
+  }
 });

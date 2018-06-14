@@ -10,11 +10,15 @@
  *
  * ## Components
  * * `component:add` - Triggered when a new component is added to the editor, the model is passed as an argument to the callback
+ * * `component:remove` - Triggered when a component is removed, the model is passed as an argument to the callback
+ * * `component:clone` - Triggered when a new component is added by a clone command, the model is passed as an argument to the callback
  * * `component:update` - Triggered when a component is updated (moved, styled, etc.), the model is passed as an argument to the callback
  * * `component:update:{propertyName}` - Listen any property change, the model is passed as an argument to the callback
  * * `component:styleUpdate` - Triggered when the style of the component is updated, the model is passed as an argument to the callback
  * * `component:styleUpdate:{propertyName}` - Listen for a specific style property change, the model is passed as an argument to the callback
  * * `component:selected` - New component selected, the selected model is passed as an argument to the callback
+ * * `component:deselected` - Component deselected, the deselected model is passed as an argument to the callback
+ * * `component:toggled` - Component selection changed, toggled model is passed as an argument to the callback
  * ## Blocks
  * * `block:add` - New block added
  * * `block:remove` - Block removed
@@ -37,10 +41,23 @@
  * * `styleManager:change:{propertyName}` - As above but for a specific style property
  * ## Storages
  * * `storage:start` - Before the storage request is started
+ * * `storage:start:store` - Before the store request. The object to store is passed as an argumnet (which you can edit)
+ * * `storage:start:load` - Before the load request. Items to load are passed as an argumnet (which you can edit)
  * * `storage:load` - Triggered when something was loaded from the storage, loaded object passed as an argumnet
  * * `storage:store` - Triggered when something is stored to the storage, stored object passed as an argumnet
  * * `storage:end` - After the storage request is ended
+ * * `storage:end:store` - After the store request
+ * * `storage:end:load` - After the load request
  * * `storage:error` - On any error on storage request, passes the error as an argument
+ * * `storage:error:store` - Error on store request, passes the error as an argument
+ * * `storage:error:load` - Error on load request, passes the error as an argument
+ * ## Canvas
+ * * `canvas:dragenter` - When something is dragged inside the canvas, `DataTransfer` instance passed as an argument
+ * * `canvas:dragover` - When something is dragging on canvas, `DataTransfer` instance passed as an argument
+ * * `canvas:drop` - Something is dropped in canvas, `DataTransfer` instance and the dropped model are passed as arguments
+ * * `canvas:dragend` - When a drag operation is ended, `DataTransfer` instance passed as an argument
+ * * `canvas:dragdata` - On any dataTransfer parse, `DataTransfer` instance and the `result` are passed as arguments.
+ *  By changing `result.content` you're able to customize what is dropped
  * ## Selectors
  * * `selector:add` - Triggers when a new selector/class is created
  * ## RTE
@@ -49,6 +66,9 @@
  * ## Commands
  * * `run:{commandName}` - Triggered when some command is called to run (eg. editor.runCommand('preview'))
  * * `stop:{commandName}` - Triggered when some command is called to stop (eg. editor.stopCommand('preview'))
+ * * `run:{commandName}:before` - Triggered before the command is called
+ * * `stop:{commandName}:before` - Triggered before the command is called to stop
+ * * `abort:{commandName}` - Triggered when the command execution is aborted (`editor.on(`run:preview:before`, opts => opts.abort = 1);`)
  * ## General
  * * `canvasScroll` - Triggered when the canvas is scrolle
  * * `undo` - Undo executed
@@ -71,6 +91,7 @@
  * @param {Object} [config.domComponents={}] Components configuration, see the relative documentation
  * @param {Object} [config.panels={}] Panels configuration, see the relative documentation
  * @param {Object} [config.showDevices=true] If true render a select of available devices inside style manager panel
+ * @param {Boolean} [config.keepEmptyTextNodes=false] If false, removes empty text nodes when parsed (unless they contain a space)
  * @param {string} [config.defaultCommand='select-comp'] Command to execute when no other command is running
  * @param {Array} [config.plugins=[]] Array of plugins to execute on start
  * @param {Object} [config.pluginsOpts={}] Custom options for plugins
@@ -85,24 +106,22 @@ import $ from 'cash-dom';
 
 module.exports = config => {
   var c = config || {},
-  defaults = require('./config/config'),
-  EditorModel = require('./model/Editor'),
-  EditorView = require('./view/EditorView');
+    defaults = require('./config/config'),
+    EditorModel = require('./model/Editor'),
+    EditorView = require('./view/EditorView');
 
   for (var name in defaults) {
-    if (!(name in c))
-      c[name] = defaults[name];
+    if (!(name in c)) c[name] = defaults[name];
   }
 
   c.pStylePrefix = c.stylePrefix;
   var em = new EditorModel(c);
   var editorView = new EditorView({
-      model: em,
-      config: c,
+    model: em,
+    config: c
   });
 
   return {
-
     $,
 
     /**
@@ -116,6 +135,12 @@ module.exports = config => {
      * @private
      */
     DomComponents: em.get('DomComponents'),
+
+    /**
+     * @property {LayerManager}
+     * @private
+     */
+    LayerManager: em.get('LayerManager'),
 
     /**
      * @property {CssComposer}
@@ -342,11 +367,19 @@ module.exports = config => {
     },
 
     /**
-     * Returns selected component, if there is one
+     * Returns the last selected component, if there is one
      * @return {Model}
      */
     getSelected() {
       return em.getSelected();
+    },
+
+    /**
+     * Returns an array of all selected components
+     * @return {Array}
+     */
+    getSelectedAll() {
+      return em.getSelectedAll();
     },
 
     /**
@@ -377,6 +410,42 @@ module.exports = config => {
      */
     select(el) {
       em.setSelected(el);
+      return this;
+    },
+
+    /**
+     * Add component to selection
+     * @param  {Component|HTMLElement|Array} el Component to select
+     * @return {this}
+     * @example
+     * editor.selectAdd(model);
+     */
+    selectAdd(el) {
+      em.addSelected(el);
+      return this;
+    },
+
+    /**
+     * Remove component from selection
+     * @param  {Component|HTMLElement|Array} el Component to select
+     * @return {this}
+     * @example
+     * editor.selectRemove(model);
+     */
+    selectRemove(el) {
+      em.removeSelected(el);
+      return this;
+    },
+
+    /**
+     * Toggle component selection
+     * @param  {Component|HTMLElement|Array} el Component to select
+     * @return {this}
+     * @example
+     * editor.selectToggle(model);
+     */
+    selectToggle(el) {
+      em.toggleSelected(el);
       return this;
     },
 
@@ -413,14 +482,11 @@ module.exports = config => {
      * @example
      * editor.runCommand('myCommand', {someValue: 1});
      */
-    runCommand(id, options) {
-      var result;
-      var command = em.get('Commands').get(id);
+    runCommand(id, options = {}) {
+      let result;
+      const command = em.get('Commands').get(id);
+      if (command) result = command.callRun(this, options);
 
-      if(command){
-        result = command.run(this, this, options);
-        this.trigger('run:' + id);
-      }
       return result;
     },
 
@@ -432,14 +498,11 @@ module.exports = config => {
      * @example
      * editor.stopCommand('myCommand', {someValue: 1});
      */
-    stopCommand(id, options) {
-      var result;
-      var command = em.get('Commands').get(id);
+    stopCommand(id, options = {}) {
+      let result;
+      const command = em.get('Commands').get(id);
+      if (command) result = command.callStop(this, options);
 
-      if(command){
-        result = command.stop(this, this, options);
-        this.trigger('stop:' + id);
-      }
       return result;
     },
 
@@ -468,6 +531,15 @@ module.exports = config => {
      */
     getContainer() {
       return c.el;
+    },
+
+    /**
+     * Return the count of changes made to the content and not yet stored.
+     * This count resets at any `store()`
+     * @return {number}
+     */
+    getDirtyCount() {
+      return em.getDirtyCount();
     },
 
     /**
@@ -547,6 +619,13 @@ module.exports = config => {
     },
 
     /**
+     * Destroy the editor
+     */
+    destroy() {
+      return em.destroyAll();
+    },
+
+    /**
      * Returns editor element
      * @return {HTMLElement}
      * @private
@@ -580,8 +659,6 @@ module.exports = config => {
 
       editorView.render();
       return editorView.el;
-    },
-
+    }
   };
-
 };

@@ -4,7 +4,6 @@ import ParserHtml from 'parser/model/ParserHtml';
 
 const parseStyle = ParserHtml().parseStyle;
 export default {
-
   parseStyle,
 
   /**
@@ -14,9 +13,8 @@ export default {
    * @return {Object}
    */
   extendStyle(prop) {
-    return { ...this.getStyle(), ...prop};
+    return { ...this.getStyle(), ...prop };
   },
-
 
   /**
    * Get style object
@@ -25,7 +23,6 @@ export default {
   getStyle() {
     return { ...this.get('style') };
   },
-
 
   /**
    * Set new style object
@@ -42,11 +39,17 @@ export default {
     const propNew = { ...prop };
     this.set('style', propNew, opts);
     const diff = shallowDiff(propOrig, propNew);
-    keys(diff).forEach(pr => this.trigger(`change:style:${pr}`));
+    keys(diff).forEach(pr => {
+      const em = this.em;
+      this.trigger(`change:style:${pr}`);
+      if (em) {
+        em.trigger(`styleable:change`, this, pr);
+        em.trigger(`styleable:change:${pr}`, this, pr);
+      }
+    });
 
     return propNew;
   },
-
 
   /**
    * Add style property
@@ -69,7 +72,6 @@ export default {
     this.setStyle(prop, opts);
   },
 
-
   /**
    * Remove style property
    * @param {string} prop
@@ -79,7 +81,6 @@ export default {
     delete style[prop];
     this.setStyle(style);
   },
-
 
   /**
    * Returns string of style properties
@@ -98,5 +99,5 @@ export default {
     }
 
     return result.join('');
-  },
-}
+  }
+};

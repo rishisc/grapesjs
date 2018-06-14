@@ -1,13 +1,15 @@
+import Backbone from 'backbone';
 import { extend } from 'underscore';
 
 const SectorView = require('./SectorView');
 
 module.exports = Backbone.View.extend({
-
-  initialize(o) {
-    this.config = o.config || {};
-    this.pfx = this.config.stylePrefix || '';
+  initialize(o = {}) {
+    const config = o.config || {};
+    this.pfx = config.stylePrefix || '';
+    this.ppfx = config.pStylePrefix || '';
     this.target = o.target || {};
+    this.config = config;
 
     // The target that will emit events for properties
     const target = {};
@@ -19,11 +21,11 @@ module.exports = Backbone.View.extend({
     body.removeChild(dummy);
     this.propTarget = target;
     const coll = this.collection;
-    const events = 'change:selectedComponent component:update:classes change:device';
+    const events =
+      'component:toggled component:update:classes component:update:state change:device';
     this.listenTo(coll, 'add', this.addTo);
     this.listenTo(coll, 'reset', this.render);
     this.listenTo(this.target, events, this.targetUpdated);
-
   },
 
   /**
@@ -41,41 +43,33 @@ module.exports = Backbone.View.extend({
    * @private
    */
   targetUpdated() {
-    var em = this.target;
+    const em = this.target;
+    const pt = this.propTarget;
     let model = em.getSelected();
-    const um = em.get('UndoManager');
-    const cc = em.get('CssComposer');
-    const avoidInline = em.getConfig('avoidInlineStyle');
+    if (!model) return;
 
-    if (!model) {
-      return;
-    }
-
-    const id = model.getId();
     const config = em.get('Config');
-    var classes = model.get('classes');
-    var pt = this.propTarget;
     const state = !config.devicePreviewMode ? model.get('state') : '';
-    const opts = { state };
-    var stateStr = state ? `:${state}` : null;
-    var view = model.view;
-    const media = em.getCurrentMedia();
+    const el = model.getEl();
     pt.helper = null;
 
-    if (view) {
-      pt.computed = window.getComputedStyle(view.el, state ? `:${state}` : null);
+    // Create computed style container
+    if (el) {
+      const stateStr = state ? `:${state}` : null;
+      pt.computed = window.getComputedStyle(el, stateStr);
     }
 
+    // Create a new rule for the state as a helper
     const appendStateRule = (style = {}) => {
-      const sm = em.get('SelectorManager');
-      const helperClass = sm.add('hc-state');
-      let helperRule = cc.get([helperClass]);
+      const cc = em.get('CssComposer');
+      const helperCls = 'hc-state';
+      const rules = cc.getAll();
+      let helperRule = cc.getClassRule(helperCls);
 
       if (!helperRule) {
-        helperRule = cc.add([helperClass]);
+        helperRule = cc.setClassRule(helperCls);
       } else {
         // I will make it last again, otherwise it could be overridden
-        const rules = cc.getAll();
         rules.remove(helperRule);
         rules.add(helperRule);
       }
@@ -85,58 +79,11 @@ module.exports = Backbone.View.extend({
       pt.helper = helperRule;
     };
 
-    // If true the model will be always a rule
-    if (avoidInline) {
-      const ruleId = cc.getIdRule(id, opts);
-
-      if (!ruleId) {
-        model = cc.setIdRule(id, {}, opts);
-      } else {
-        model = ruleId;
-      }
-    }
-
-    if (classes.length) {
-      var valid = classes.getStyleable();
-      var iContainer = cc.get(valid, state, media);
-
-      if (!iContainer && valid.length) {
-        // I stop undo manager here as after adding the CSSRule (generally after
-        // selecting the component) and calling undo() it will remove the rule from
-        // the collection, therefore updating it in style manager will not affect it
-        // #268
-        um.stop();
-        iContainer = cc.add(valid, state, media);
-        iContainer.setStyle(model.getStyle());
-        model.setStyle({});
-        um.start();
-      }
-
-      if (!iContainer) {
-        // In this case it's just a Component without any valid selector
-        pt.model = model;
-        pt.trigger('update');
-        return;
-      }
-
-      // If the state is not empty, there should be a helper rule in play
-      // The helper rule will get the same style of the iContainer
-      state && appendStateRule(iContainer.getStyle());
-
-      pt.model = iContainer;
-      pt.trigger('update');
-      return;
-    }
-
-    if (state) {
-      const ruleState = cc.getIdRule(id, opts);
-      state && appendStateRule(ruleState && ruleState.getStyle());
-    }
-
+    model = em.get('StyleManager').getModelToStyle(model);
+    state && appendStateRule(model.getStyle());
     pt.model = model;
     pt.trigger('update');
   },
-
 
   /**
    * Add new object to collection
@@ -149,18 +96,23 @@ module.exports = Backbone.View.extend({
     var fragment = fragmentEl || null;
     var view = new SectorView({
       model,
-      id: this.pfx + model.get('name').replace(' ','_').toLowerCase(),
+      id:
+        this.pfx +
+        model
+          .get('name')
+          .replace(' ', '_')
+          .toLowerCase(),
       name: model.get('name'),
       properties: model.get('properties'),
       target: this.target,
       propTarget: this.propTarget,
-      config: this.config,
+      config: this.config
     });
     var rendered = view.render().el;
 
-    if(fragment){
+    if (fragment) {
       fragment.appendChild(rendered);
-    }else{
+    } else {
       this.$el.append(rendered);
     }
 
@@ -168,15 +120,14 @@ module.exports = Backbone.View.extend({
   },
 
   render() {
-    var fragment = document.createDocumentFragment();
-    this.$el.empty();
-
-    this.collection.each(function(model){
-      this.addToCollection(model, fragment);
-    }, this);
-
-    this.$el.attr('id', this.pfx + 'sectors');
-    this.$el.append(fragment);
+    const frag = document.createDocumentFragment();
+    const $el = this.$el;
+    const pfx = this.pfx;
+    const ppfx = this.ppfx;
+    $el.empty();
+    this.collection.each(model => this.addToCollection(model, frag));
+    $el.append(frag);
+    $el.addClass(`${pfx}sectors ${ppfx}one-bg ${ppfx}two-color`);
     return this;
   }
 });

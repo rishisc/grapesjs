@@ -2,7 +2,6 @@ import fetch from 'utils/fetch';
 import { isUndefined } from 'underscore';
 
 module.exports = require('backbone').Model.extend({
-
   fetch,
 
   defaults: {
@@ -22,29 +21,22 @@ module.exports = require('backbone').Model.extend({
     const em = this.get('em');
     const before = this.get('beforeSend');
     before && before();
-    em && em.trigger('storage:start');
   },
 
   /**
    * Triggered on request error
    * @param  {Object} err Error
+   * @param  {Function} [clbErr] Error callback
    * @private
    */
-  onError(err) {
-    const em = this.get('em');
-    console.error(err);
-    em && em.trigger('storage:error', err);
-    this.onEnd(err);
-  },
-
-  /**
-   * Triggered after the request is ended
-   * @param  {Object|string} res End result
-   * @private
-   */
-  onEnd(res) {
-    const em = this.get('em');
-    em && em.trigger('storage:end', res);
+  onError(err, clbErr) {
+    if (clbErr) {
+      clbErr(err);
+    } else {
+      const em = this.get('em');
+      console.error(err);
+      em && em.trigger('storage:error', err);
+    }
   },
 
   /**
@@ -56,35 +48,36 @@ module.exports = require('backbone').Model.extend({
     const em = this.get('em');
     const complete = this.get('onComplete');
     const typeJson = this.get('contentTypeJson');
-    const res = typeJson && typeof text === 'string' ? JSON.parse(text): text;
+    const parsable = text && typeof text === 'string';
+    const res = typeJson && parsable ? JSON.parse(text) : text;
     complete && complete(res);
     clb && clb(res);
     em && em.trigger('storage:response', res);
-    this.onEnd(text);
   },
 
-  store(data, clb) {
+  store(data, clb, clbErr) {
     const body = {};
 
     for (let key in data) {
       body[key] = data[key];
     }
 
-    this.request(this.get('urlStore'), {body}, clb);
+    this.request(this.get('urlStore'), { body }, clb, clbErr);
   },
 
-  load(keys, clb) {
-    this.request(this.get('urlLoad'), {method: 'get'}, clb);
+  load(keys, clb, clbErr) {
+    this.request(this.get('urlLoad'), { method: 'get' }, clb, clbErr);
   },
 
   /**
    * Execute remote request
    * @param  {string} url Url
    * @param  {Object} [opts={}] Options
-   * @param  {[type]} [clb=null] Callback
+   * @param  {Function} [clb=null] Callback
+   * @param  {Function} [clbErr=null] Error callback
    * @private
    */
-  request(url, opts = {}, clb = null) {
+  request(url, opts = {}, clb = null, clbErr = null) {
     const typeJson = this.get('contentTypeJson');
     const headers = this.get('headers') || {};
     const params = this.get('params');
@@ -121,7 +114,7 @@ module.exports = require('backbone').Model.extend({
     fetchOptions = {
       method: opts.method || 'post',
       credentials: 'include',
-      headers,
+      headers
     };
 
     // Body should only be included on POST method
@@ -131,11 +124,13 @@ module.exports = require('backbone').Model.extend({
 
     this.onStart();
     this.fetch(url, fetchOptions)
-      .then(res => (res.status/200|0) == 1
-        ? res.text()
-        : res.text().then((text) => Promise.reject(text)))
-      .then((text) => this.onResponse(text, clb))
-      .catch(err => this.onError(err));
-  },
-
+      .then(
+        res =>
+          ((res.status / 200) | 0) == 1
+            ? res.text()
+            : res.text().then(text => Promise.reject(text))
+      )
+      .then(text => this.onResponse(text, clb))
+      .catch(err => this.onError(err, clbErr));
+  }
 });

@@ -1,15 +1,15 @@
-import {on, off} from 'utils/mixins'
+import { on, off, hasDnd, getElement } from 'utils/mixins';
+import Droppable from 'utils/Droppable';
 
 module.exports = () => {
   var c = {},
-  defaults = require('./config/config'),
-  Canvas = require('./model/Canvas'),
-  CanvasView = require('./view/CanvasView');
+    defaults = require('./config/config'),
+    Canvas = require('./model/Canvas'),
+    CanvasView = require('./view/CanvasView');
   var canvas;
   var frameRect;
 
   return {
-
     /**
      * Used inside RTE
      * @private
@@ -32,23 +32,20 @@ module.exports = () => {
     init(config) {
       c = config || {};
       for (var name in defaults) {
-        if (!(name in c))
-          c[name] = defaults[name];
+        if (!(name in c)) c[name] = defaults[name];
       }
 
       var ppfx = c.pStylePrefix;
-      if(ppfx)
-        c.stylePrefix = ppfx + c.stylePrefix;
+      if (ppfx) c.stylePrefix = ppfx + c.stylePrefix;
 
       canvas = new Canvas(config);
-      CanvasView	= new CanvasView({
+      CanvasView = new CanvasView({
         model: canvas,
-        config: c,
+        config: c
       });
 
       var cm = c.em.get('DomComponents');
-      if(cm)
-        this.setWrapper(cm);
+      if (cm) this.setWrapper(cm);
 
       this.startAutoscroll = this.startAutoscroll.bind(this);
       this.stopAutoscroll = this.stopAutoscroll.bind(this);
@@ -87,6 +84,22 @@ module.exports = () => {
      */
     getFrameEl() {
       return CanvasView.frame.el;
+    },
+
+    /**
+     * Returns the frame document
+     * @return {HTMLElement}
+     */
+    getDocument() {
+      return this.getFrameEl().contentDocument;
+    },
+
+    /**
+     * Returns the frame's window
+     * @return {HTMLElement}
+     */
+    getWindow() {
+      return this.getFrameEl().contentWindow;
     },
 
     /**
@@ -200,11 +213,11 @@ module.exports = () => {
     },
 
     /**
-    * Get the offset of the element
-    * @param  {HTMLElement} el
-    * @return {Object}
-    * @private
-    */
+     * Get the offset of the element
+     * @param  {HTMLElement} el
+     * @return {Object}
+     * @private
+     */
     offset(el) {
       return CanvasView.offset(el);
     },
@@ -248,6 +261,7 @@ module.exports = () => {
     getTargetToElementDim(target, element, options) {
       var opts = options || {};
       var canvasPos = CanvasView.getPosition();
+      if (!canvasPos) return;
       var pos = opts.elPos || CanvasView.getElementPos(element);
       var toRight = options.toRight || 0;
       var targetHeight = opts.targetHeight || target.offsetHeight;
@@ -257,11 +271,11 @@ module.exports = () => {
       var elTop = pos.top - targetHeight;
       var elLeft = pos.left;
       elLeft += toRight ? pos.width : 0;
-      elLeft = toRight ? (elLeft - targetWidth) : elLeft;
+      elLeft = toRight ? elLeft - targetWidth : elLeft;
 
       var leftPos = elLeft < canvasPos.left ? canvasPos.left : elLeft;
       var topPos = elTop < canvasPos.top ? canvasPos.top : elTop;
-      topPos = topPos > (pos.top + pos.height) ? (pos.top + pos.height) : topPos;
+      topPos = topPos > pos.top + pos.height ? pos.top + pos.height : topPos;
 
       var result = {
         top: topPos,
@@ -273,11 +287,11 @@ module.exports = () => {
         targetWidth: target.offsetWidth,
         targetHeight: target.offsetHeight,
         canvasTop: canvasPos.top,
-        canvasLeft: canvasPos.left,
+        canvasLeft: canvasPos.left
       };
 
       // In this way I can catch data and also change the position strategy
-      if(eventToTrigger && c.em) {
+      if (eventToTrigger && c.em) {
         c.em.trigger(eventToTrigger, result);
       }
 
@@ -311,7 +325,7 @@ module.exports = () => {
 
       return {
         y: e.clientY + addTop - yOffset,
-        x: e.clientX + addLeft - xOffset,
+        x: e.clientX + addLeft - xOffset
       };
     },
 
@@ -331,8 +345,16 @@ module.exports = () => {
 
       return {
         y: e.clientY + addTop + yOffset,
-        x: e.clientX + addLeft + xOffset,
+        x: e.clientX + addLeft + xOffset
       };
+    },
+
+    /**
+     * Check if the canvas is focused
+     * @return {Boolean}
+     */
+    hasFocus() {
+      return this.getDocument().hasFocus();
     },
 
     /**
@@ -342,6 +364,29 @@ module.exports = () => {
      */
     isInputFocused() {
       return this.getFrameEl().contentDocument.activeElement.tagName !== 'BODY';
+    },
+
+    /**
+     * Scroll canvas to the element if it's not visible. The scrolling is
+     * executed via `scrollIntoView` API and options of this method are
+     * passed to it. For instance, you can scroll smoothly  with
+     * `{ behavior: 'smooth' }`. You can also force the scroll
+     * @param  {HTMLElement|Component} el
+     * @param  {Object} [opts={}] Options, same as options for `scrollIntoView`
+     * @example
+     * const selected = editor.getSelected();
+     * // Scroll smoothly (this behavior can be polyfilled)
+     * cv.scrollTo(selected, { behavior: 'smooth' });
+     * // Force the scroll, even if the element is alredy visible
+     * cv.scrollTo(selected, { force: true });
+     */
+    scrollTo(el, opts = {}) {
+      const elem = getElement(el);
+      const cv = this.getCanvasView();
+
+      if (!cv.isElInViewport(elem) || opts.force) {
+        elem.scrollIntoView(opts);
+      }
     },
 
     /**
@@ -371,11 +416,11 @@ module.exports = () => {
         let limitBottom = frameRect.height - limitTop;
 
         if (clientY < limitTop) {
-          nextTop -= (limitTop - clientY);
+          nextTop -= limitTop - clientY;
         }
 
         if (clientY > limitBottom) {
-          nextTop += (clientY - limitBottom);
+          nextTop += clientY - limitBottom;
         }
 
         //console.log(`actualTop: ${actualTop} clientY: ${clientY} nextTop: ${nextTop} frameHeigh: ${frameRect.height}`);
@@ -397,6 +442,10 @@ module.exports = () => {
       return [this.getFrameEl().contentWindow, this.getElement()];
     },
 
+    postRender() {
+      if (hasDnd(c.em)) this.droppable = new Droppable(c.em);
+    },
+
     /**
      * Returns wrapper element
      * @return {HTMLElement}
@@ -404,6 +453,6 @@ module.exports = () => {
      */
     getFrameWrapperEl() {
       return CanvasView.frame.getWrapper();
-    },
+    }
   };
 };

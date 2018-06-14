@@ -4,6 +4,8 @@
 [![Chat](https://img.shields.io/badge/chat-discord-7289da.svg)](https://discord.gg/QAbgGXq)
 [![CDNJS](https://img.shields.io/cdnjs/v/grapesjs.svg)](https://cdnjs.com/libraries/grapesjs)
 [![npm](https://img.shields.io/npm/v/grapesjs.svg)](https://www.npmjs.com/package/grapesjs)
+[![BrowserStack Status](https://www.browserstack.com/automate/badge.svg?badge_key=QksxaStYaGI3eE5VMDlPTEh0Z3hYOXEwRWNMc1ZYT0lNbEJxMWdOZWFDZz0tLWlqcFVWb05PMmlQMmU3emFIZkFNWVE9PQ==--e89345be5e303d515276e3accd6f1316dfa857ab)](https://www.browserstack.com/automate/public-build/QksxaStYaGI3eE5VMDlPTEh0Z3hYOXEwRWNMc1ZYT0lNbEJxMWdOZWFDZz0tLWlqcFVWb05PMmlQMmU3emFIZkFNWVE9PQ==--e89345be5e303d515276e3accd6f1316dfa857ab)
+
 
 <p align="center"><img src="http://grapesjs.com/img/grapesjs-front-page-m.jpg" alt="GrapesJS" width="500" align="center"/></p>
 
@@ -35,6 +37,8 @@ Newsletter Demo - http://grapesjs.com/demo-newsletter-editor.html
 * [Testing](#testing)
 * [Plugins](#plugins)
 * [Support](#support)
+* [Changelog](https://github.com/artf/grapesjs/releases)
+* [Contributing](https://github.com/artf/grapesjs/blob/master/CONTRIBUTING.md)
 * [License](#license)
 
 
@@ -122,9 +126,6 @@ You could also grab the content directly from the element with `fromElement` pro
 For more practical example I suggest to look up the code inside this demo: http://grapesjs.com/demo.html
 
 
-
-
-
 ## Development
 
 GrapesJS uses [Webpack](https://github.com/webpack/webpack) as a module bundler and [Babel](https://github.com/babel/babel) as a compiler.
@@ -188,6 +189,10 @@ $ npm test
 * [grapesjs-component-countdown](https://github.com/artf/grapesjs-component-countdown) - Simple countdown component
 * [grapesjs-style-gradient](https://github.com/artf/grapesjs-style-gradient) - Add a gradient type input
 * [grapesjs-blocks-flexbox](https://github.com/artf/grapesjs-blocks-flexbox) - Add the flexbox block
+* [grapesjs-lory-slider](https://github.com/artf/grapesjs-lory-slider) - Slider component by using [lory](https://github.com/meandmax/lory)
+* [grapesjs-tabs](https://github.com/artf/grapesjs-tabs) - Simple tabs component
+* [grapesjs-indexeddb](https://github.com/artf/grapesjs-indexeddb) - Storage wrapper for IndexedDB
+* [grapesjs-firestore](https://github.com/artf/grapesjs-firestore) - Storage wrapper for [Cloud Firestore](https://firebase.google.com/docs/firestore)
 
 ### Presets
 * [grapesjs-preset-webpage](https://github.com/artf/grapesjs-preset-webpage) - Webpage Builder
@@ -228,7 +233,14 @@ If you like the project support it with a donation of your choice or become a ba
 <a href="https://opencollective.com/grapesjs/backers/7/website"><img src="https://opencollective.com/grapesjs/backers/7/avatar"></a>
 <a href="https://opencollective.com/grapesjs/backers/8/website"><img src="https://opencollective.com/grapesjs/backers/8/avatar"></a>
 <a href="https://opencollective.com/grapesjs/backers/9/website"><img src="https://opencollective.com/grapesjs/backers/9/avatar"></a>
+<a href="https://opencollective.com/grapesjs/backers/10/website"><img src="https://opencollective.com/grapesjs/backers/10/avatar"></a>
+<a href="https://opencollective.com/grapesjs/backers/11/website"><img src="https://opencollective.com/grapesjs/backers/11/avatar"></a>
+<a href="https://opencollective.com/grapesjs/backers/12/website"><img src="https://opencollective.com/grapesjs/backers/12/avatar"></a>
 
+<br>
+
+[![BrowserStack](https://user-images.githubusercontent.com/11614725/39406324-4ef89c40-4bb5-11e8-809a-113d9432e5a5.png)](https://www.browserstack.com)<br/>
+Thanks to [BrowserStack](https://www.browserstack.com) for providing us browser testing services
 
 
 ## License

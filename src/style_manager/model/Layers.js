@@ -1,7 +1,7 @@
+import Backbone from 'backbone';
 const Layer = require('./Layer');
 
 module.exports = Backbone.Collection.extend({
-
   model: Layer,
 
   initialize() {
@@ -11,8 +11,7 @@ module.exports = Backbone.Collection.extend({
   },
 
   onAdd(model, c, opts) {
-    if(!opts.noIncrement)
-      model.set('index', this.idx++);
+    if (!opts.noIncrement) model.set('index', this.idx++);
   },
 
   onReset() {
@@ -38,7 +37,7 @@ module.exports = Backbone.Collection.extend({
     });
     const layerValues = value ? value.split(', ') : [];
     layerValues.forEach(layerValue => {
-      layers.push({properties: this.properties.parseValue(layerValue)});
+      layers.push({ properties: this.properties.parseValue(layerValue) });
     });
     return layers;
   },
@@ -85,14 +84,13 @@ module.exports = Backbone.Collection.extend({
         const propertyName = propModel.get('property');
 
         if (layerProprs.indexOf(propertyName) < 0) {
-          layer.properties.push({ ...propModel.attributes })
+          layer.properties.push({ ...propModel.attributes });
         }
-      })
+      });
     });
 
     return layers;
   },
-
 
   active(index) {
     this.each(layer => layer.set('active', 0));
@@ -114,5 +112,4 @@ module.exports = Backbone.Collection.extend({
     });
     return result.join(', ');
   }
-
 });

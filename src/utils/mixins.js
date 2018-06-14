@@ -1,7 +1,11 @@
-import { omit, keys, isUndefined } from 'underscore';
+import { omit, keys, isUndefined, isElement } from 'underscore';
 
 const elProt = window.Element.prototype;
-const matches = elProt.matches || elProt.webkitMatchesSelector || elProt.mozMatchesSelector || elProt.msMatchesSelector;
+const matches =
+  elProt.matches ||
+  elProt.webkitMatchesSelector ||
+  elProt.mozMatchesSelector ||
+  elProt.msMatchesSelector;
 
 /**
  * Returns shallow diff between 2 objects
@@ -44,7 +48,6 @@ const shallowDiff = (objOrig, objNew) => {
   return result;
 };
 
-
 const on = (el, ev, fn) => {
   ev = ev.split(/\s+/);
   el = el instanceof Array ? el : [el];
@@ -52,8 +55,7 @@ const on = (el, ev, fn) => {
   for (let i = 0; i < ev.length; ++i) {
     el.forEach(elem => elem.addEventListener(ev[i], fn));
   }
-}
-
+};
 
 const off = (el, ev, fn) => {
   ev = ev.split(/\s+/);
@@ -62,21 +64,18 @@ const off = (el, ev, fn) => {
   for (let i = 0; i < ev.length; ++i) {
     el.forEach(elem => elem.removeEventListener(ev[i], fn));
   }
-}
+};
 
-
-const getUnitFromValue = (value) => {
+const getUnitFromValue = value => {
   return value.replace(parseFloat(value), '');
-}
-
+};
 
 const upFirst = value => value[0].toUpperCase() + value.toLowerCase().slice(1);
-
 
 const camelCase = value => {
   const values = value.split('-');
   return values[0].toLowerCase() + values.slice(1).map(upFirst);
-}
+};
 
 const normalizeFloat = (value, step = 1, valueDef = 0) => {
   let stepDecimals = 0;
@@ -89,16 +88,49 @@ const normalizeFloat = (value, step = 1, valueDef = 0) => {
   }
 
   return stepDecimals ? parseFloat(value.toFixed(stepDecimals)) : value;
-}
+};
 
+const hasDnd = em => {
+  return (
+    'draggable' in document.createElement('i') &&
+    (em ? em.get('Config').nativeDnD : 1)
+  );
+};
+
+/**
+ * Ensure to fetch the element from the input argument
+ * @param  {HTMLElement|Component} el Component or HTML element
+ * @return {HTMLElement}
+ */
+const getElement = el => {
+  if (isElement(el)) {
+    return el;
+  } else if (el && el.getEl) {
+    return el.getEl();
+  }
+};
+
+/**
+ * Ensure to fetch the model from the input argument
+ * @param  {HTMLElement|Component} el Component or HTML element
+ * @return {Component}
+ */
+const getModel = (el, $) => {
+  let model = el;
+  isElement(el) && (model = $(el).data('model'));
+  return model;
+};
 
 export {
   on,
   off,
+  hasDnd,
   upFirst,
   matches,
+  getModel,
   camelCase,
+  getElement,
   shallowDiff,
   normalizeFloat,
   getUnitFromValue
-}
+};

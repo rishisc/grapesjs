@@ -1,15 +1,16 @@
+import Backbone from 'backbone';
+import { on, off, getElement } from 'utils/mixins';
 const FrameView = require('./FrameView');
 const $ = Backbone.$;
 
 module.exports = Backbone.View.extend({
-
   initialize(o) {
     _.bindAll(this, 'renderBody', 'onFrameScroll', 'clearOff');
-    window.onscroll = this.clearOff
+    on(window, 'scroll resize', this.clearOff);
     this.config = o.config || {};
     this.em = this.config.em || {};
-    this.ppfx  = this.config.pStylePrefix || '';
-    this.className  = this.config.stylePrefix + 'canvas';
+    this.ppfx = this.config.pStylePrefix || '';
+    this.className = this.config.stylePrefix + 'canvas';
     this.listenTo(this.em, 'change:canvasOffset', this.clearOff);
     this.frame = new FrameView({
       model: this.model.get('frame'),
@@ -17,19 +18,22 @@ module.exports = Backbone.View.extend({
     });
   },
 
-
   /**
    * Checks if the element is visible in the canvas's viewport
    * @param  {HTMLElement}  el
    * @return {Boolean}
    */
   isElInViewport(el) {
-    const rect = el.getBoundingClientRect();
+    const rect = getElement(el).getBoundingClientRect();
     const frameRect = this.getFrameOffset(1);
     const rTop = rect.top;
     const rLeft = rect.left;
-    return rTop >= 0 && rLeft >= 0 &&
-          rTop <= frameRect.height && rLeft <= frameRect.width;
+    return (
+      rTop >= 0 &&
+      rLeft >= 0 &&
+      rTop <= frameRect.height &&
+      rLeft <= frameRect.width
+    );
   },
 
   /**
@@ -49,26 +53,26 @@ module.exports = Backbone.View.extend({
    * @private
    */
   renderScripts() {
-      var frame = this.frame;
-      var that = this;
+    var frame = this.frame;
+    var that = this;
 
-      frame.el.onload = () => {
-        var scripts = that.config.scripts.slice(0),  // clone
-            counter = 0;
+    frame.el.onload = () => {
+      var scripts = that.config.scripts.slice(0), // clone
+        counter = 0;
 
-        function appendScript(scripts) {
-          if (scripts.length > 0) {
-            var script = document.createElement('script');
-            script.type = 'text/javascript';
-            script.src = scripts.shift();
-            script.onerror = script.onload = appendScript.bind(null, scripts);
-            frame.el.contentDocument.head.appendChild(script);
-          } else {
-            that.renderBody();
-          }
+      function appendScript(scripts) {
+        if (scripts.length > 0) {
+          var script = document.createElement('script');
+          script.type = 'text/javascript';
+          script.src = scripts.shift();
+          script.onerror = script.onload = appendScript.bind(null, scripts);
+          frame.el.contentDocument.head.appendChild(script);
+        } else {
+          that.renderBody();
         }
-        appendScript(scripts);
-      };
+      }
+      appendScript(scripts);
+    };
   },
 
   /**
@@ -78,7 +82,7 @@ module.exports = Backbone.View.extend({
   renderBody() {
     var wrap = this.model.get('frame').get('wrapper');
     var em = this.config.em;
-    if(wrap) {
+    if (wrap) {
       var ppfx = this.ppfx;
       //var body = this.frame.$el.contents().find('body');
       var body = $(this.frame.el.contentWindow.document.body);
@@ -88,28 +92,13 @@ module.exports = Backbone.View.extend({
       var protCss = conf.protectedCss;
       var externalStyles = '';
 
-      confCanvas.styles.forEach((style) => {
+      confCanvas.styles.forEach(style => {
         externalStyles += `<link rel="stylesheet" href="${style}"/>`;
       });
 
       const colorWarn = '#ffca6f';
 
-      let baseCss = `
-        * {
-          box-sizing: border-box;
-        }
-        html, body, #wrapper {
-          min-height: 100%;
-        }
-        body {
-          margin: 0;
-          height: 100%;
-          background-color: #fff
-        }
-        #wrapper {
-          overflow: auto
-        }
-      `;
+      // I need all this styles to make the editor work properly
       // Remove `html { height: 100%;}` from the baseCss as it gives jumpings
       // effects (on ENTER) with RTE like CKEditor (maybe some bug there?!?)
       // With `body {height: auto;}` jumps in CKEditor are removed but in
@@ -117,18 +106,17 @@ module.exports = Backbone.View.extend({
       // `body {height: 100%;}`.
       // For the moment I give the priority to Firefox as it might be
       // CKEditor's issue
-
-      // I need all this styles to make the editor work properly
       var frameCss = `
-        ${baseCss}
+        ${em.config.baseCss || ''}
 
         .${ppfx}dashed *[data-highlightable] {
           outline: 1px dashed rgba(170,170,170,0.7);
-          outline-offset: -3px
+          outline-offset: -2px;
         }
 
         .${ppfx}comp-selected {
           outline: 3px solid #3b97e3 !important;
+          outline-offset: -3px;
         }
 
         .${ppfx}comp-selected-parent {
@@ -166,18 +154,6 @@ module.exports = Backbone.View.extend({
           cursor: -webkit-grabbing;
         }
 
-        * ::-webkit-scrollbar-track {
-          background: rgba(0, 0, 0, 0.1)
-        }
-
-        * ::-webkit-scrollbar-thumb {
-          background: rgba(255, 255, 255, 0.2)
-        }
-
-        * ::-webkit-scrollbar {
-          width: 10px
-        }
-
         ${conf.canvasCss || ''}
         ${protCss || ''}
       `;
@@ -202,8 +178,14 @@ module.exports = Backbone.View.extend({
       // the keyCode/which will be always `0`. Even if it's an old/deprecated
       // property keymaster (and many others) still use it... using `defineProperty`
       // hack seems the only way
-      const createCustomEvent = (e) => {
-        var oEvent = new KeyboardEvent(e.type, e);
+      const createCustomEvent = (e, cls) => {
+        let oEvent;
+        try {
+          oEvent = new window[cls](e.type, e);
+        } catch (e) {
+          oEvent = document.createEvent(cls);
+          oEvent.initEvent(e.type, true, true);
+        }
         oEvent.keyCodeVal = e.keyCode;
         ['keyCode', 'which'].forEach(prop => {
           Object.defineProperty(oEvent, prop, {
@@ -213,13 +195,18 @@ module.exports = Backbone.View.extend({
           });
         });
         return oEvent;
-      }
-      fdoc.addEventListener('keydown', e => {
-        doc.dispatchEvent(createCustomEvent(e));
-      });
-      fdoc.addEventListener('keyup', e => {
-        doc.dispatchEvent(createCustomEvent(e));
-      });
+      };
+
+      [
+        { event: 'keydown keyup', class: 'KeyboardEvent' }
+        //{ event: 'mousedown mousemove mouseup', class: 'MouseEvent' },
+      ].forEach(obj =>
+        obj.event.split(' ').forEach(event => {
+          fdoc.addEventListener(event, e =>
+            doc.dispatchEvent(createCustomEvent(e, obj.class))
+          );
+        })
+      );
     }
   },
 
@@ -235,7 +222,7 @@ module.exports = Backbone.View.extend({
       top: rect.top + docBody.scrollTop,
       left: rect.left + docBody.scrollLeft,
       width: rect.width,
-      height: rect.height,
+      height: rect.height
     };
   },
 
@@ -254,8 +241,7 @@ module.exports = Backbone.View.extend({
    * @private
    */
   getFrameOffset(force = 0) {
-    if(!this.frmOff || force)
-      this.frmOff = this.offset(this.frame.el);
+    if (!this.frmOff || force) this.frmOff = this.offset(this.frame.el);
     return this.frmOff;
   },
 
@@ -265,8 +251,7 @@ module.exports = Backbone.View.extend({
    * @private
    */
   getCanvasOffset() {
-    if(!this.cvsOff)
-      this.cvsOff = this.offset(this.el);
+    if (!this.cvsOff) this.cvsOff = this.offset(this.el);
     return this.cvsOff;
   },
 
@@ -300,9 +285,11 @@ module.exports = Backbone.View.extend({
    * @private
    */
   getPosition() {
-    var bEl = this.frame.el.contentDocument.body;
-    var fo = this.getFrameOffset();
-    var co = this.getCanvasOffset();
+    const doc = this.frame.el.contentDocument;
+    if (!doc) return;
+    const bEl = doc.body;
+    const fo = this.getFrameOffset();
+    const co = this.getCanvasOffset();
     return {
       top: fo.top + bEl.scrollTop - co.top,
       left: fo.left + bEl.scrollLeft - co.left
@@ -315,25 +302,29 @@ module.exports = Backbone.View.extend({
    * @private
    */
   updateScript(view) {
-    if(!view.scriptContainer) {
+    if (!view.scriptContainer) {
       view.scriptContainer = $('<div>');
-      this.getJsContainer().append(view.scriptContainer.get(0));
+      this.getJsContainer().appendChild(view.scriptContainer.get(0));
     }
 
-    var model = view.model;
-    var id = model.getId();
+    const model = view.model;
+    const id = model.getId();
     view.el.id = id;
     view.scriptContainer.html('');
     // In editor, I make use of setTimeout as during the append process of elements
     // those will not be available immediatly, therefore 'item' variable
     const script = document.createElement('script');
-    script.innerText = `
+    script.innerHTML = `
         setTimeout(function() {
           var item = document.getElementById('${id}');
           if (!item) return;
-          (function(){${model.getScriptString()}}.bind(item))()
+          (function(){
+            ${model.getScriptString()};
+          }.bind(item))()
         }, 1);`;
-    view.scriptContainer.get(0).appendChild(script);
+    // #873
+    // Adding setTimeout will make js components work on init of the editor
+    setTimeout(() => view.scriptContainer.get(0).appendChild(script), 0);
   },
 
   /**
@@ -347,11 +338,10 @@ module.exports = Backbone.View.extend({
     return this.jsContainer;
   },
 
-
   render() {
-    this.wrapper  = this.model.get('wrapper');
+    this.wrapper = this.model.get('wrapper');
 
-    if(this.wrapper && typeof this.wrapper.render == 'function'){
+    if (this.wrapper && typeof this.wrapper.render == 'function') {
       this.model.get('frame').set('wrapper', this.wrapper);
       this.$el.append(this.frame.render().el);
       var frame = this.frame;
@@ -389,6 +379,5 @@ module.exports = Backbone.View.extend({
     this.toolsEl = toolsEl;
     this.el.className = this.className;
     return this;
-  },
-
+  }
 });

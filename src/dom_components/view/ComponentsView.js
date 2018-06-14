@@ -1,29 +1,37 @@
-import { isUndefined } from 'underscore'
+import Backbone from 'backbone';
+import { isUndefined } from 'underscore';
 
 module.exports = Backbone.View.extend({
-
   initialize(o) {
     this.opts = o || {};
     this.config = o.config || {};
     const coll = this.collection;
     this.listenTo(coll, 'add', this.addTo);
     this.listenTo(coll, 'reset', this.resetChildren);
+    this.listenTo(coll, 'remove', this.removeChildren);
+  },
+
+  removeChildren(removed) {
+    const view = removed.view;
+    if (!view) return;
+    view.remove.apply(view);
+    const children = view.childrenView;
+    children && children.stopListening();
   },
 
   /**
    * Add to collection
-   * @param  {Object} Model
-   *
-   * @return  void
+   * @param {Model} model
+   * @param {Collection} coll
+   * @param {Object} opts
    * @private
    * */
-  addTo(model) {
+  addTo(model, coll = {}, opts = {}) {
     const em = this.config.em;
     const i = this.collection.indexOf(model);
     this.addToCollection(model, null, i);
 
-    if (em && !model.opt.temporary) {
-      em.trigger('add:component', model); // @deprecated
+    if (em && !opts.temporary) {
       em.trigger('component:add', model);
     }
   },
@@ -38,10 +46,9 @@ module.exports = Backbone.View.extend({
    * @private
    * */
   addToCollection(model, fragmentEl, index) {
-    if(!this.compView)
-      this.compView  =  require('./ComponentView');
-    var fragment  = fragmentEl || null,
-    viewObject  = this.compView;
+    if (!this.compView) this.compView = require('./ComponentView');
+    var fragment = fragmentEl || null,
+      viewObject = this.compView;
 
     var dt = this.opts.componentTypes;
 
@@ -49,7 +56,7 @@ module.exports = Backbone.View.extend({
 
     for (var it = 0; it < dt.length; it++) {
       var dtId = dt[it].id;
-      if(dtId == type) {
+      if (dtId == type) {
         viewObject = dt[it].view;
         break;
       }
@@ -59,16 +66,16 @@ module.exports = Backbone.View.extend({
     var view = new viewObject({
       model,
       config: this.config,
-      componentTypes: dt,
+      componentTypes: dt
     });
-    var rendered  = view.render().el;
-    if(view.model.get('type') == 'textnode')
-      rendered =  document.createTextNode(view.model.get('content'));
+    var rendered = view.render().el;
+    if (view.model.get('type') == 'textnode')
+      rendered = document.createTextNode(view.model.get('content'));
 
     if (fragment) {
       fragment.appendChild(rendered);
     } else {
-      const parent  = this.parentEl;
+      const parent = this.parentEl;
       const children = parent.childNodes;
 
       if (!isUndefined(index)) {
@@ -102,11 +109,10 @@ module.exports = Backbone.View.extend({
   render(parent) {
     const el = this.el;
     const frag = document.createDocumentFragment();
-    this.parentEl  = parent || this.el;
+    this.parentEl = parent || this.el;
     this.collection.each(model => this.addToCollection(model, frag));
     el.innerHTML = '';
     el.appendChild(frag);
     return this;
   }
-
 });

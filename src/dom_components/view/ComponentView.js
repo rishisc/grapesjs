@@ -1,9 +1,9 @@
-import { isArray } from 'underscore';
+import Backbone from 'backbone';
+import { isArray, isEmpty } from 'underscore';
 
 const ComponentsView = require('./ComponentsView');
 
 module.exports = Backbone.View.extend({
-
   className() {
     return this.getClasses();
   },
@@ -24,7 +24,6 @@ module.exports = Backbone.View.extend({
     this.classe = this.attr.class || [];
     const $el = this.$el;
     const classes = model.get('classes');
-    this.listenTo(model, 'destroy remove', this.remove);
     this.listenTo(model, 'change:style', this.updateStyle);
     this.listenTo(model, 'change:attributes', this.updateAttributes);
     this.listenTo(model, 'change:highlightable', this.updateHighlight);
@@ -38,12 +37,6 @@ module.exports = Backbone.View.extend({
     model.view = this;
     classes.length && this.importClasses();
     this.init();
-  },
-
-  remove() {
-    Backbone.View.prototype.remove.apply(this);
-    const children = this.childrenView;
-    children && children.stopListening();
   },
 
   /**
@@ -64,7 +57,6 @@ module.exports = Backbone.View.extend({
     }
   },
 
-
   /**
    * Import, if possible, classes inside main container
    * @private
@@ -72,13 +64,12 @@ module.exports = Backbone.View.extend({
   importClasses() {
     var clm = this.config.em.get('SelectorManager');
 
-    if(clm){
+    if (clm) {
       this.model.get('classes').each(m => {
-          clm.add(m.get('name'));
+        clm.add(m.get('name'));
       });
     }
   },
-
 
   /**
    * Fires on state update. If the state is not empty will add a helper class
@@ -89,51 +80,54 @@ module.exports = Backbone.View.extend({
     var cl = 'hc-state';
     var state = this.model.get('state');
 
-    if(state){
+    if (state) {
       this.$el.addClass(cl);
-    }else{
+    } else {
       this.$el.removeClass(cl);
     }
   },
-
 
   /**
    * Update item on status change
    * @param  {Event} e
    * @private
    * */
-  updateStatus(e) {
-    var el = this.el;
-    var status = this.model.get('status');
-    var pfx = this.pfx;
-    var ppfx = this.ppfx;
-    var selectedCls = pfx + 'selected';
-    var selectedParentCls = selectedCls + '-parent';
-    var freezedCls = `${ppfx}freezed`;
+  updateStatus(opts = {}) {
+    const em = this.em;
+    const el = this.el;
+    const status = this.model.get('status');
+    const pfx = this.pfx;
+    const ppfx = this.ppfx;
+    const selectedCls = `${pfx}selected`;
+    const selectedParentCls = `${selectedCls}-parent`;
+    const freezedCls = `${ppfx}freezed`;
+    const hoveredCls = `${ppfx}hovered`;
+    const toRemove = [selectedCls, selectedParentCls, freezedCls, hoveredCls];
+    this.$el.removeClass(toRemove.join(' '));
     var actualCls = el.getAttribute('class') || '';
     var cls = '';
 
     switch (status) {
-        case 'selected':
-          cls = `${actualCls} ${selectedCls}`;
-          break;
-        case 'selected-parent':
-          cls = `${actualCls} ${selectedParentCls}`;
-          break;
-        case 'freezed':
-          cls = `${actualCls} ${freezedCls}`;
-          break;
-        default:
-          this.$el.removeClass(`${selectedCls} ${selectedParentCls} ${freezedCls}`);
+      case 'selected':
+        cls = `${actualCls} ${selectedCls}`;
+        break;
+      case 'selected-parent':
+        cls = `${actualCls} ${selectedParentCls}`;
+        break;
+      case 'freezed':
+        cls = `${actualCls} ${freezedCls}`;
+        break;
+      case 'freezed-selected':
+        cls = `${actualCls} ${freezedCls} ${selectedCls}`;
+        break;
+      case 'hovered':
+        cls = !opts.avoidHover ? `${actualCls} ${hoveredCls}` : '';
+        break;
     }
 
     cls = cls.trim();
-
-    if (cls) {
-      el.setAttribute('class', cls);
-    }
+    cls && el.setAttribute('class', cls);
   },
-
 
   /**
    * Update highlight attribute
@@ -143,7 +137,6 @@ module.exports = Backbone.View.extend({
     const hl = this.model.get('highlightable');
     this.setAttribute('data-highlightable', hl ? 1 : '');
   },
-
 
   /**
    * Update style attribute
@@ -155,19 +148,22 @@ module.exports = Backbone.View.extend({
 
     if (em && em.get('avoidInlineStyle')) {
       this.el.id = model.getId();
-      model.setStyle(model.getStyle());
+      const style = model.getStyle();
+      !isEmpty(style) && model.setStyle(style);
     } else {
       this.setAttribute('style', model.styleToString());
     }
   },
-
 
   /**
    * Update classe attribute
    * @private
    * */
   updateClasses() {
-    const str = this.model.get('classes').pluck('name').join(' ');
+    const str = this.model
+      .get('classes')
+      .pluck('name')
+      .join(' ');
     this.setAttribute('class', str);
 
     // Regenerate status class
@@ -192,8 +188,8 @@ module.exports = Backbone.View.extend({
    * @private
    * */
   getClasses() {
-    var attr = this.model.get("attributes"),
-      classes  = attr['class'] || [];
+    var attr = this.model.get('attributes'),
+      classes = attr['class'] || [];
     classes = isArray(classes) ? classes : [classes];
 
     if (classes.length) {
@@ -209,7 +205,7 @@ module.exports = Backbone.View.extend({
    * */
   updateAttributes() {
     const model = this.model;
-    const attrs = {}
+    const attrs = { 'data-gjs-type': model.get('type') || 'default' };
     const attr = model.get('attributes');
     const src = model.get('src');
 
@@ -250,7 +246,7 @@ module.exports = Backbone.View.extend({
     }
 
     var em = this.em;
-    if(em) {
+    if (em) {
       var canvas = em.get('Canvas');
       canvas.getCanvasView().updateScript(this);
     }
@@ -301,14 +297,14 @@ module.exports = Backbone.View.extend({
     const view = new ComponentsView({
       collection: this.model.get('components'),
       config: this.config,
-      componentTypes: this.opts.componentTypes,
+      componentTypes: this.opts.componentTypes
     });
 
     view.render(container);
     this.childrenView = view;
     const childNodes = Array.prototype.slice.call(view.el.childNodes);
 
-    for (var i = 0, len = childNodes.length ; i < len; i++) {
+    for (var i = 0, len = childNodes.length; i < len; i++) {
       container.appendChild(childNodes.shift());
     }
 
@@ -340,7 +336,9 @@ module.exports = Backbone.View.extend({
     this.updateContent();
     this.renderChildren();
     this.updateScript();
+    this.onRender();
     return this;
   },
 
+  onRender() {}
 });
