@@ -1,10 +1,10 @@
-import { bindAll, isArray } from 'underscore';
+import Backbone from 'backbone';
+import { bindAll, isArray, isUndefined } from 'underscore';
 import { camelCase } from 'utils/mixins';
 
 const clearProp = 'data-clear-style';
 
 module.exports = Backbone.View.extend({
-
   template(model) {
     const pfx = this.pfx;
     return `
@@ -38,8 +38,8 @@ module.exports = Backbone.View.extend({
   },
 
   events: {
-    'change': 'inputValueChanged',
-    [`click [${clearProp}]`]: 'clear',
+    change: 'inputValueChanged',
+    [`click [${clearProp}]`]: 'clear'
   },
 
   initialize(o = {}) {
@@ -52,8 +52,8 @@ module.exports = Backbone.View.extend({
     this.target = o.target || {};
     this.propTarget = o.propTarget || {};
     this.onChange = o.onChange;
-    this.onInputRender = o.onInputRender  || {};
-    this.customValue  = o.customValue  || {};
+    this.onInputRender = o.onInputRender || {};
+    this.customValue = o.customValue || {};
     const model = this.model;
     this.property = model.get('property');
     this.input = null;
@@ -67,6 +67,7 @@ module.exports = Backbone.View.extend({
     }
 
     em && em.on(`update:component:style:${this.property}`, this.targetUpdated);
+    //em && em.on(`styleable:change:${this.property}`, this.targetUpdated);
     this.listenTo(this.propTarget, 'update', this.targetUpdated);
     this.listenTo(model, 'destroy remove', this.remove);
     this.listenTo(model, 'change:value', this.modelValueChanged);
@@ -112,9 +113,9 @@ module.exports = Backbone.View.extend({
   /**
    * Clear the property from the target
    */
-  clear() {
-    const target = this.getTargetModel();
-    target.removeStyle(this.model.get('property'));
+  clear(e) {
+    e && e.stopPropagation();
+    this.model.clearValue();
     this.targetUpdated();
   },
 
@@ -123,7 +124,11 @@ module.exports = Backbone.View.extend({
    * @return {HTMLElement}
    */
   getClearEl() {
-    return this.el.querySelector(`[${clearProp}]`);
+    if (!this.clearEl) {
+      this.clearEl = this.el.querySelector(`[${clearProp}]`);
+    }
+
+    return this.clearEl;
   },
 
   /**
@@ -160,7 +165,6 @@ module.exports = Backbone.View.extend({
     this.elementUpdated();
   },
 
-
   /**
    * Fired when the element of the property is updated
    */
@@ -168,13 +172,11 @@ module.exports = Backbone.View.extend({
     this.setStatus('updated');
   },
 
-
   setStatus(value) {
     this.model.set('status', value);
     const parent = this.model.parent;
     parent && parent.set('status', value);
   },
-
 
   /**
    * Fired when the target is changed
@@ -189,7 +191,7 @@ module.exports = Backbone.View.extend({
     const model = this.model;
     let value = '';
     let status = '';
-    let targetValue = this.getTargetValue({ignoreDefault: 1});
+    let targetValue = this.getTargetValue({ ignoreDefault: 1 });
     let defaultValue = model.getDefaultValue();
     let computedValue = this.getComputedValue();
 
@@ -199,8 +201,11 @@ module.exports = Backbone.View.extend({
       if (config.highlightChanged) {
         status = 'updated';
       }
-    } else if (computedValue && config.showComputed &&
-        computedValue != defaultValue) {
+    } else if (
+      computedValue &&
+      config.showComputed &&
+      computedValue != defaultValue
+    ) {
       value = computedValue;
 
       if (config.highlightComputed) {
@@ -374,9 +379,6 @@ module.exports = Backbone.View.extend({
    * @return {Boolean}
    */
   isTargetStylable(target) {
-    if (this.model.get('id') == 'flex-width') {
-      //debugger;
-    }
     const trg = target || this.getTarget();
     const model = this.model;
     const property = model.get('property');
@@ -411,7 +413,7 @@ module.exports = Backbone.View.extend({
    */
   isComponentStylable() {
     const em = this.em;
-    const component = em && em.get('selectedComponent');
+    const component = em && em.getSelected();
 
     if (!component) {
       return true;
@@ -432,7 +434,6 @@ module.exports = Backbone.View.extend({
     this.setValue(this.model.parseValue(value));
   },
 
-
   /**
    * Update the element input.
    * Usually the value is a result of `model.getFullValue()`
@@ -440,11 +441,10 @@ module.exports = Backbone.View.extend({
    * */
   setValue(value) {
     const model = this.model;
-    let val = value || model.getDefaultValue();
+    let val = isUndefined(value) ? model.getDefaultValue() : value;
     const input = this.getInputEl();
     input && (input.value = val);
   },
-
 
   getInputEl() {
     if (!this.input) {
@@ -455,8 +455,7 @@ module.exports = Backbone.View.extend({
   },
 
   updateVisibility() {
-    this.el.style.display = this.model.get('visible') ?
-      'block' : 'none';
+    this.el.style.display = this.model.get('visible') ? 'block' : 'none';
   },
 
   show() {
@@ -484,7 +483,6 @@ module.exports = Backbone.View.extend({
 
     const onRender = this.onRender && this.onRender.bind(this);
     onRender && onRender();
-    this.setValue(model.get('value'), {targetUpdate: 1});
-  },
-
+    this.setValue(model.get('value'), { targetUpdate: 1 });
+  }
 });

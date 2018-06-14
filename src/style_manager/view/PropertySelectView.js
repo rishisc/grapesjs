@@ -1,7 +1,7 @@
+import Backbone from 'backbone';
 const $ = Backbone.$;
 
 module.exports = require('./PropertyView').extend({
-
   templateInput() {
     const pfx = this.pfx;
     const ppfx = this.ppfx;
@@ -16,7 +16,7 @@ module.exports = require('./PropertyView').extend({
   },
 
   onRender() {
-    var pfx  = this.pfx;
+    var pfx = this.pfx;
     const model = this.model;
     const options = model.get('list') || model.get('options') || [];
 
@@ -25,9 +25,9 @@ module.exports = require('./PropertyView').extend({
 
       options.forEach(option => {
         let name = option.name || option.value;
-        let style = option.style ? option.style.replace(/"/g,'&quot;') : '';
+        let style = option.style ? option.style.replace(/"/g, '&quot;') : '';
         let styleAttr = style ? `style="${style}"` : '';
-        let value = option.value.replace(/"/g,'&quot;');
+        let value = option.value.replace(/"/g, '&quot;');
         optionsStr += `<option value="${value}" ${styleAttr}>${name}</option>`;
       });
 
@@ -35,6 +35,5 @@ module.exports = require('./PropertyView').extend({
       inputH.innerHTML = `<select>${optionsStr}</select>`;
       this.input = inputH.firstChild;
     }
-  },
-
+  }
 });

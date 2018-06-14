@@ -1,16 +1,14 @@
+const Backbone = require('backbone');
 const $ = Backbone.$;
 
 module.exports = Backbone.View.extend({
-
   events: {
-    'change': 'handleChange',
+    change: 'handleChange'
   },
-
 
   template() {
     return `<span class="${this.holderClass()}"></span>`;
   },
-
 
   inputClass() {
     return `${this.ppfx}field`;
@@ -20,7 +18,6 @@ module.exports = Backbone.View.extend({
     return `${this.ppfx}input-holder`;
   },
 
-
   initialize(opts = {}) {
     const ppfx = opts.ppfx || '';
     this.opts = opts;
@@ -29,14 +26,12 @@ module.exports = Backbone.View.extend({
     this.listenTo(this.model, 'change:value', this.handleModelChange);
   },
 
-
   /**
    * Fired when the element of the property is updated
    */
   elementUpdated() {
     this.model.trigger('el:change');
   },
-
 
   /**
    * Set value to the input element
@@ -49,7 +44,6 @@ module.exports = Backbone.View.extend({
     input && (input.value = val);
   },
 
-
   /**
    * Updates the view when the model is changed
    * */
@@ -57,16 +51,15 @@ module.exports = Backbone.View.extend({
     this.setValue(value, opts);
   },
 
-
   /**
    * Handled when the view is changed
    */
   handleChange(e) {
     e.stopPropagation();
-    this.model.set('value', this.getInputEl().value);
+    const value = this.getInputEl().value;
+    this.model.set({ value }, { fromInput: 1 });
     this.elementUpdated();
   },
-
 
   /**
    * Get the input element
@@ -74,13 +67,12 @@ module.exports = Backbone.View.extend({
    */
   getInputEl() {
     if (!this.inputEl) {
-      const plh = this.model.get('defaults');
+      const plh = this.model.get('defaults') || '';
       this.inputEl = $(`<input type="text" placeholder="${plh}">`);
     }
 
     return this.inputEl.get(0);
   },
-
 
   render() {
     const el = this.$el;
@@ -89,5 +81,4 @@ module.exports = Backbone.View.extend({
     el.find(`.${this.holderClass()}`).append(this.getInputEl());
     return this;
   }
-
 });

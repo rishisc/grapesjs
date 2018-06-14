@@ -1,9 +1,7 @@
-var Backbone = require('backbone');
+import Backbone from 'backbone';
 
 module.exports = Backbone.Model.extend({
-
-  defaults :{
-    id: '',
+  defaults: {
+    id: ''
   }
-
 });

@@ -1,3 +1,4 @@
+import Backbone from 'backbone';
 const PropertyView = require('./PropertyView');
 const PropertyIntegerView = require('./PropertyIntegerView');
 const PropertyRadioView = require('./PropertyRadioView');
@@ -8,7 +9,6 @@ const PropertyCompositeView = require('./PropertyCompositeView');
 const PropertyStackView = require('./PropertyStackView');
 
 module.exports = Backbone.View.extend({
-
   initialize(o) {
     this.config = o.config || {};
     this.pfx = this.config.stylePrefix || '';
@@ -17,16 +17,15 @@ module.exports = Backbone.View.extend({
     this.onChange = o.onChange;
     this.onInputRender = o.onInputRender || {};
     this.customValue = o.customValue || {};
+    this.properties = [];
     const coll = this.collection;
     this.listenTo(coll, 'add', this.addTo);
     this.listenTo(coll, 'reset', this.render);
   },
 
-
   addTo(model) {
     this.add(model);
   },
-
 
   add(model, frag) {
     var view = new model.typeView({
@@ -37,7 +36,7 @@ module.exports = Backbone.View.extend({
       propTarget: this.propTarget,
       onChange: this.onChange,
       onInputRender: this.onInputRender,
-      config: this.config,
+      config: this.config
     });
 
     if (model.get('type') != 'composite') {
@@ -46,6 +45,7 @@ module.exports = Backbone.View.extend({
 
     view.render();
     const el = view.el;
+    this.properties.push(view);
 
     if (frag) {
       frag.appendChild(el);
@@ -54,8 +54,8 @@ module.exports = Backbone.View.extend({
     }
   },
 
-
   render() {
+    this.properties = [];
     const fragment = document.createDocumentFragment();
     this.collection.each(model => this.add(model, fragment));
     this.$el.append(fragment);

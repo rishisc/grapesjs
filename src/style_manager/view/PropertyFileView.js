@@ -1,8 +1,8 @@
+import Backbone from 'backbone';
 const PropertyView = require('./PropertyView');
 const $ = Backbone.$;
 
 module.exports = PropertyView.extend({
-
   templateInput() {
     const pfx = this.pfx;
     const ppfx = this.ppfx;
@@ -29,8 +29,8 @@ module.exports = PropertyView.extend({
     const em = this.em;
     this.modal = em.get('Modal');
     this.am = em.get('AssetManager');
-    this.events['click #'+this.pfx+'close']    = 'removeFile';
-    this.events['click #'+this.pfx+'images']  = 'openAssetManager';
+    this.events['click #' + this.pfx + 'close'] = 'removeFile';
+    this.events['click #' + this.pfx + 'images'] = 'openAssetManager';
     this.delegateEvents();
   },
 
@@ -92,7 +92,7 @@ module.exports = PropertyView.extend({
   /** @inheritdoc */
   cleanValue() {
     this.setPreviewView(0);
-    this.model.set({value: ''},{silent: true});
+    this.model.set({ value: '' }, { silent: true });
   },
 
   /**
@@ -113,11 +113,11 @@ module.exports = PropertyView.extend({
    * @return void
    * */
   openAssetManager(e) {
-    var that  = this;
+    var that = this;
     var em = this.em;
     var editor = em ? em.get('Editor') : '';
 
-    if(editor) {
+    if (editor) {
       this.modal.setTitle('Select image');
       this.modal.setContent(this.am.getContainer());
       this.am.setTarget(null);
@@ -129,5 +129,5 @@ module.exports = PropertyView.extend({
         }
       });
     }
-  },
+  }
 });

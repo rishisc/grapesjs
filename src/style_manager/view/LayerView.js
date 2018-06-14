@@ -1,5 +1,6 @@
-module.exports = Backbone.View.extend({
+import Backbone from 'backbone';
 
+module.exports = Backbone.View.extend({
   events: {
     click: 'active',
     'click [data-close-layer]': 'remove',
@@ -23,7 +24,7 @@ module.exports = Backbone.View.extend({
       </div>
       <div id="${pfx}inputs" data-properties></div>
       <div style="clear:both"></div>
-    `
+    `;
   },
 
   initialize(o = {}) {
@@ -44,7 +45,7 @@ module.exports = Backbone.View.extend({
 
     // For the sorter
     model.view = this;
-    model.set({droppable: 0, draggable: 1});
+    model.set({ droppable: 0, draggable: 1 });
     this.$el.data('model', model);
   },
 
@@ -53,14 +54,11 @@ module.exports = Backbone.View.extend({
    * @param  {Event} e
    * */
   initSorter(e) {
-    if(this.sorter)
-      this.sorter.startSort(this.el);
+    if (this.sorter) this.sorter.startSort(this.el);
   },
 
-
   remove(e) {
-    if(e && e.stopPropagation)
-      e.stopPropagation();
+    if (e && e.stopPropagation) e.stopPropagation();
 
     const model = this.model;
     const collection = model.collection;
@@ -73,7 +71,7 @@ module.exports = Backbone.View.extend({
     }
 
     if (stackModel && stackModel.set) {
-      stackModel.set({stackIndex: null}, {silent: true});
+      stackModel.set({ stackIndex: null }, { silent: true });
       stackModel.trigger('updateValue');
     }
   },
@@ -93,7 +91,7 @@ module.exports = Backbone.View.extend({
       if (value) {
         if (prop.get('type') == 'integer') {
           let valueInt = parseInt(value, 10);
-          let unit = value.replace(valueInt,'');
+          let unit = value.replace(valueInt, '');
           valueInt = !isNaN(valueInt) ? valueInt : 0;
           valueInt = valueInt > lim ? lim : valueInt;
           valueInt = valueInt < -lim ? -lim : valueInt;
@@ -112,7 +110,9 @@ module.exports = Backbone.View.extend({
     const customPreview = this.customPreview;
     const previewEl = this.getPreviewEl();
     const value = this.model.getFullValue();
-    const preview = customPreview ? customPreview(value) : this.onPreview(value);
+    const preview = customPreview
+      ? customPreview(value)
+      : this.onPreview(value);
 
     if (preview && stackModel && previewEl) {
       previewEl.style[stackModel.get('property')] = preview;
@@ -159,7 +159,7 @@ module.exports = Backbone.View.extend({
       target: propsConfig.target,
       customValue: propsConfig.customValue,
       propTarget: propsConfig.propTarget,
-      onChange: propsConfig.onChange,
+      onChange: propsConfig.onChange
     }).render().el;
     el.innerHTML = this.template(model);
     el.className = className;
@@ -167,6 +167,5 @@ module.exports = Backbone.View.extend({
     this.updateVisibility();
     this.updatePreview();
     return this;
-  },
-
+  }
 });
