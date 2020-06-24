@@ -1,17 +1,40 @@
 /**
- * This module allows to create shortcuts for functions and commands (via command id)
+ * You can customize the initial state of the module from the editor initialization
+ * ```js
+ * const editor = grapesjs.init({
+ *  keymaps: {
+ *     // Object of keymaps
+ *    defaults: {
+ *      'your-namespace:keymap-name' {
+ *        keys: '⌘+z, ctrl+z',
+ *        handler: 'some-command-id'
+ *      },
+ *      ...
+ *    }
+ *  }
+ * })
+ * ```
  *
- * You can access the module in this way
+ * Once the editor is instantiated you can use its API. Before using these methods you should get the module from the instance
+ *
  * ```js
  * const keymaps = editor.Keymaps;
  * ```
  *
+ * * [getConfig](#getconfig)
+ * * [add](#add)
+ * * [get](#get)
+ * * [getAll](#getAll)
+ * * [remove](#remove)
+ * * [removeAll](#removeall)
+ *
+ * @module Keymaps
  */
+
 import { isString } from 'underscore';
+import keymaster from 'keymaster';
 
-const keymaster = require('keymaster');
-
-module.exports = () => {
+export default () => {
   let em;
   let config;
   const keymaps = {};
@@ -48,6 +71,10 @@ module.exports = () => {
       'core:component-exit': {
         keys: 'a',
         handler: 'core:component-exit'
+      },
+      'core:component-delete': {
+        keys: 'backspace, delete',
+        handler: 'core:component-delete'
       }
     }
   };
@@ -91,6 +118,7 @@ module.exports = () => {
      * @param {string} id Keymap id
      * @param {string} keys Keymap keys, eg. `ctrl+a`, `⌘+z, ctrl+z`
      * @param {Function|string} handler Keymap handler, might be a function
+     * @param {Object} [opts={}] Options
      * @return {Object} Added keymap
      *  or just a command id as a string
      * @example
@@ -106,21 +134,29 @@ module.exports = () => {
      *  // ...
      * })
      */
-    add(id, keys, handler) {
-      const em = this.em;
+    add(id, keys, handler, opts = {}) {
+      const { em } = this;
       const cmd = em.get('Commands');
       const editor = em.getEditor();
+      const canvas = em.get('Canvas');
       const keymap = { id, keys, handler };
       const pk = keymaps[id];
       pk && this.remove(id);
       keymaps[id] = keymap;
       keymaster(keys, (e, h) => {
         // It's safer putting handlers resolution inside the callback
+        const opt = { event: e, h };
         handler = isString(handler) ? cmd.get(handler) : handler;
-        typeof handler == 'object' ? handler.run(editor) : handler(editor);
-        const args = [id, h.shortcut, e];
-        em.trigger('keymap:emit', ...args);
-        em.trigger(`keymap:emit:${id}`, ...args);
+        opts.prevent && canvas.getCanvasView().preventDefault(e);
+        const ableTorun = !em.isEditing() && !editor.Canvas.isInputFocused();
+        if (ableTorun || opts.force) {
+          typeof handler == 'object'
+            ? handler.run(editor, 0, opt)
+            : handler(editor, 0, opt);
+          const args = [id, h.shortcut, e];
+          em.trigger('keymap:emit', ...args);
+          em.trigger(`keymap:emit:${id}`, ...args);
+        }
       });
       em.trigger('keymap:add', keymap);
       return keymap;
@@ -167,6 +203,15 @@ module.exports = () => {
         em && em.trigger('keymap:remove', keymap);
         return keymap;
       }
+    },
+
+    /**
+     * Remove all binded keymaps
+     * @return {this}
+     */
+    removeAll() {
+      Object.keys(keymaps).forEach(keymap => this.remove(keymap));
+      return this;
     }
   };
 };

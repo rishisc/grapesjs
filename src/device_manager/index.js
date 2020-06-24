@@ -1,17 +1,31 @@
 /**
- * Before using methods you should get first the module from the editor instance, in this way:
+ * You can customize the initial state of the module from the editor initialization, by passing the following [Configuration Object](https://github.com/artf/grapesjs/blob/master/src/device_manager/config/config.js)
+ * ```js
+ * const editor = grapesjs.init({
+ *  deviceManager: {
+ *    // options
+ *  }
+ * })
+ * ```
+ *
+ * Once the editor is instantiated you can use its API. Before using these methods you should get the module from the instance
  *
  * ```js
- * var deviceManager = editor.DeviceManager;
+ * const deviceManager = editor.DeviceManager;
  * ```
+ *
+ * * [add](#add)
+ * * [get](#get)
+ * * [getAll](#getAll)
  *
  * @module DeviceManager
  */
-module.exports = () => {
-  var c = {},
-    defaults = require('./config/config'),
-    Devices = require('./model/Devices'),
-    DevicesView = require('./view/DevicesView');
+import defaults from './config/config';
+import Devices from './model/Devices';
+import DevicesView from './view/DevicesView';
+
+export default () => {
+  var c = {};
   var devices, view;
 
   return {
@@ -44,7 +58,8 @@ module.exports = () => {
         if (!(name in c)) c[name] = defaults[name];
       }
 
-      devices = new Devices(c.devices);
+      devices = new Devices();
+      (c.devices || []).forEach(dv => this.add(dv.id || dv.name, dv.width, dv));
       view = new DevicesView({
         collection: devices,
         config: c
@@ -54,21 +69,27 @@ module.exports = () => {
 
     /**
      * Add new device to the collection. URLs are supposed to be unique
-     * @param {string} name Device name
-     * @param {string} width Width of the device
-     * @param {Object} opts Custom options
-     * @return {Device} Added device
+     * @param {String} id Device id
+     * @param {String} width Width of the device
+     * @param {Object} [opts] Custom options
+     * @returns {Device} Added device
      * @example
-     * deviceManager.add('Tablet', '900px');
-     * deviceManager.add('Tablet2', '900px', {
+     * deviceManager.add('tablet', '900px');
+     * deviceManager.add('tablet2', '900px', {
      *  height: '300px',
+     *  // At first, GrapesJS tries to localize the name by device id.
+     *  // In case is not found, the `name` property is used (or `id` if name is missing)
+     *  name: 'Tablet 2',
      *  widthMedia: '810px', // the width that will be used for the CSS media
      * });
      */
-    add(name, width, opts) {
-      var obj = opts || {};
-      obj.name = name;
-      obj.width = width;
+    add(id, width, opts = {}) {
+      const obj = {
+        ...opts,
+        id,
+        name: opts.name || id,
+        width: width
+      };
       return devices.add(obj);
     },
 

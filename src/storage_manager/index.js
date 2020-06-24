@@ -1,16 +1,43 @@
 /**
- * Before using methods you should get first the module from the editor instance, in this way:
+ * You can customize the initial state of the module from the editor initialization, by passing the following [Configuration Object](https://github.com/artf/grapesjs/blob/master/src/storage_manager/config/config.js)
+ * ```js
+ * const editor = grapesjs.init({
+ *  storageManager: {
+ *    // options
+ *  }
+ * })
+ * ```
+ *
+ * Once the editor is instantiated you can use its API. Before using these methods you should get the module from the instance
  *
  * ```js
- * var storageManager = editor.StorageManager;
+ * const storageManager = editor.StorageManager;
  * ```
+ *
+ * * [getConfig](#getconfig)
+ * * [isAutosave](#isautosave)
+ * * [setAutosave](#setautosave)
+ * * [getStepsBeforeSave](#getstepsbeforesave)
+ * * [setStepsBeforeSave](#setstepsbeforesave)
+ * * [setStepsBeforeSave](#setstepsbeforesave)
+ * * [getStorages](#getstorages)
+ * * [getCurrent](#getcurrent)
+ * * [getCurrentStorage](#getcurrentstorage)
+ * * [setCurrent](#setcurrent)
+ * * [add](#add)
+ * * [get](#get)
+ * * [store](#store)
+ * * [load](#load)
+ *
+ * @module StorageManager
  */
-module.exports = () => {
-  var c = {},
-    defaults = require('./config/config'),
-    LocalStorage = require('./model/LocalStorage'),
-    RemoteStorage = require('./model/RemoteStorage');
 
+import defaults from './config/config';
+import LocalStorage from './model/LocalStorage';
+import RemoteStorage from './model/RemoteStorage';
+
+export default () => {
+  var c = {};
   let em;
   var storages = {};
   var defaultStorages = {};
@@ -44,14 +71,10 @@ module.exports = () => {
      * }
      * ...
      */
-    init(config) {
-      c = config || {};
+    init(config = {}) {
+      c = { ...defaults, ...config };
       em = c.em;
-
-      for (var name in defaults) {
-        if (!(name in c)) c[name] = defaults[name];
-      }
-
+      if (c._disable) c.type = 0;
       defaultStorages.remote = new RemoteStorage(c);
       defaultStorages.local = new LocalStorage(c);
       c.currentStorage = c.type;
@@ -239,6 +262,7 @@ module.exports = () => {
             this.onEnd('load', result);
           },
           err => {
+            clb && clb(result);
             this.onError('load', err);
           }
         );

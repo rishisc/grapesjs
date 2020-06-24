@@ -1,4 +1,4 @@
-module.exports = (config = {}) => ({
+export default (config = {}) => ({
   /**
    * Build props object by their name
    * @param  {Array<string>|string} props Array of properties name
@@ -18,18 +18,6 @@ module.exports = (config = {}) => ({
       switch (prop) {
         case 'target':
           obj.type = 'select';
-          break;
-      }
-
-      // Define placeholder
-      switch (prop) {
-        case 'title':
-        case 'alt':
-        case 'id':
-          obj.placeholder = config.labelPlhText;
-          break;
-        case 'href':
-          obj.placeholder = config.labelPlhHref;
           break;
       }
 

@@ -1,41 +1,38 @@
 /**
+ * You can customize the initial state of the module from the editor initialization, by passing the following [Configuration Object](https://github.com/artf/grapesjs/blob/master/src/block_manager/config/config.js)
+ * ```js
+ * const editor = grapesjs.init({
+ *  blockManager: {
+ *    // options
+ *  }
+ * })
+ * ```
+ *
+ * Once the editor is instantiated you can use its API. Before using these methods you should get the module from the instance
+ *
+ * ```js
+ * const blockManager = editor.BlockManager;
+ * ```
  * * [add](#add)
  * * [get](#get)
  * * [getAll](#getall)
  * * [getAllVisible](#getallvisible)
+ * * [remove](#remove)
+ * * [getConfig](#getconfig)
  * * [getCategories](#getcategories)
  * * [getContainer](#getcontainer)
  * * [render](#render)
  *
- * Block manager helps managing various, draggable, piece of contents that could be easily reused inside templates.
- *
- * Before using methods you should get first the module from the editor instance, in this way:
- *
- * ```js
- * var blockManager = editor.BlockManager;
- * ```
- *
  * @module BlockManager
- * @param {Object} config Configurations
- * @param {Array<Object>} [config.blocks=[]] Default blocks
- * @example
- * ...
- * {
- *     blocks: [
- *      {id:'h1-block' label: 'Heading', content:'<h1>...</h1>'},
- *      ...
- *    ],
- * }
- * ...
  */
 import { isElement } from 'underscore';
+import defaults from './config/config';
+import Blocks from './model/Blocks';
+import BlockCategories from './model/Categories';
+import BlocksView from './view/BlocksView';
 
-module.exports = () => {
-  var c = {},
-    defaults = require('./config/config'),
-    Blocks = require('./model/Blocks'),
-    BlockCategories = require('./model/Categories'),
-    BlocksView = require('./view/BlocksView');
+export default () => {
+  var c = {};
   var blocks, blocksVisible, blocksView;
   var categories = [];
 
@@ -66,15 +63,14 @@ module.exports = () => {
       // Global blocks collection
       blocks = new Blocks([]);
       blocksVisible = new Blocks([]);
-      (categories = new BlockCategories()),
-        (blocksView = new BlocksView(
-          {
-            // Visible collection
-            collection: blocksVisible,
-            categories
-          },
-          c
-        ));
+      categories = new BlockCategories();
+      blocksView = new BlocksView(
+        {
+          collection: blocksVisible,
+          categories
+        },
+        c
+      );
 
       // Setup the sync between the global and public collections
       blocks.listenTo(blocks, 'add', model => {
@@ -208,8 +204,10 @@ module.exports = () => {
 
     /**
      * Render blocks
-     * @param  {Array} blocks Blocks to render, without the argument will render
-     *                        all global blocks
+     * @param  {Array} blocks Blocks to render, without the argument will render all global blocks
+     * @param  {Object} [opts={}] Options
+     * @param  {Boolean} [opts.external] Render blocks in a new container (HTMLElement will be returned)
+     * @param  {Boolean} [opts.ignoreCategories] Render blocks without categories
      * @return {HTMLElement} Rendered element
      * @example
      * // Render all blocks (inside the global collection)
@@ -217,9 +215,9 @@ module.exports = () => {
      *
      * // Render new set of blocks
      * const blocks = blockManager.getAll();
-     * blockManager.render(blocks.filter(
-     *  block => block.get('category') == 'sections'
-     * ));
+     * const filtered = blocks.filter(block => block.get('category') == 'sections')
+     *
+     * blockManager.render(filtered);
      * // Or a new set from an array
      * blockManager.render([
      *  {label: 'Label text', content: '<div>Content</div>'}
@@ -227,15 +225,33 @@ module.exports = () => {
      *
      * // Back to blocks from the global collection
      * blockManager.render();
+     *
+     * // You can also render your blocks outside of the main block container
+     * const newBlocksEl = blockManager.render(filtered, { external: true });
+     * document.getElementById('some-id').appendChild(newBlocksEl);
      */
-    render(blocks) {
+    render(blocks, opts = {}) {
       const toRender = blocks || this.getAll().models;
+
+      if (opts.external) {
+        return new BlocksView(
+          {
+            collection: new Blocks(toRender),
+            categories
+          },
+          {
+            ...c,
+            ...opts
+          }
+        ).render().el;
+      }
 
       if (!blocksView.rendered) {
         blocksView.render();
         blocksView.rendered = 1;
       }
 
+      blocksView.updateConfig(opts);
       blocksView.collection.reset(toRender);
       return this.getContainer();
     }
